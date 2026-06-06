@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+
+<!-- PWA / Add to Home Screen -->
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Novelist">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-startup-image" href="icon-512.png">
+<meta name="theme-color" content="#1a1a1f">
+<meta name="description" content="A beautiful novel writing app with smooth tap execution mode">
+
+<title>Novelist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#1a1a1f;--bg2:#222228;--bg3:#2a2a32;
+  --surface:rgba(255,255,255,0.06);--surface2:rgba(255,255,255,0.1);--surface3:rgba(255,255,255,0.16);
+  --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.18);
+  --text:#f0f0f5;--text2:#a0a0b0;--text3:#545468;
+  --accent:#4a9eff;--accent2:#6ab8ff;--accent-glow:rgba(74,158,255,0.28);
+  --red:#ff5f5f;--green:#34c759;
+  --blur:blur(24px) saturate(1.8);--blur-sm:blur(14px) saturate(1.5);
+  --r:14px;--r-sm:10px;--r-lg:20px;--r-xl:26px;
+  --font-body:'Crimson Pro',Georgia,serif;
+  --font-ui:'Inter',system-ui,sans-serif;
+  --editor-font:'Crimson Pro',Georgia,serif;
+  --editor-size:19px;
+  --editor-color:#f0f0f5;
+  --editor-bg:#1a1a1f;
+  --editor-width:680px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font-ui);
+  padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);}
+button{font-family:var(--font-ui);cursor:pointer;border:none;outline:none;}
+input,textarea,select{font-family:var(--font-ui);outline:none;border:none;background:none;color:var(--text);}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px;}
+
+/* LAYOUT */
+#app{display:flex;height:100%;height:100dvh;position:relative;overflow:hidden;}
+
+/* SIDEBAR */
+#sidebar{
+  width:256px;min-width:256px;
+  background:rgba(18,18,24,0.88);
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);
+  z-index:20;position:relative;
+}
+#sidebar.hidden{transform:translateX(-256px);position:absolute;top:0;bottom:0;left:0;}
+.sidebar-header{padding:18px 14px 12px;border-bottom:1px solid var(--border);}
+.app-logo{
+  font-family:var(--font-body);font-size:24px;font-weight:600;letter-spacing:-0.3px;
+  background:linear-gradient(145deg,#e8e8f8 30%,#8888aa);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px;
+}
+.sidebar-search{
+  display:flex;align-items:center;gap:7px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:9px;padding:7px 11px;
+}
+.sidebar-search input{flex:1;font-size:13px;color:var(--text2);}
+.sidebar-search input::placeholder{color:var(--text3);}
+.sidebar-nav{flex:1;overflow-y:auto;padding:10px 8px;}
+.nav-label{font-size:11px;font-weight:600;letter-spacing:0.08em;color:var(--text3);text-transform:uppercase;padding:6px 8px 5px;}
+.notebook{margin-bottom:3px;}
+.nb-header{
+  display:flex;align-items:center;gap:7px;padding:7px 8px;
+  border-radius:9px;cursor:pointer;transition:background 0.15s;user-select:none;
+}
+.nb-header:hover{background:var(--surface);}
+.nb-header.open{background:var(--surface);}
+.nb-icon{font-size:15px;width:20px;text-align:center;}
+.nb-name{flex:1;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.nb-arrow{font-size:9px;color:var(--text3);transition:transform 0.2s;}
+.nb-arrow.open{transform:rotate(90deg);}
+.chapter-list{padding:2px 0 4px 27px;}
+.ch-item{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 9px;border-radius:8px;
+  cursor:pointer;font-size:13px;color:var(--text2);
+  transition:all 0.15s;position:relative;
+}
+.ch-item:hover{background:var(--surface);color:var(--text);}
+.ch-item.active{background:rgba(74,158,255,0.12);color:var(--accent2);}
+.ch-item.active::before{
+  content:'';position:absolute;left:-5px;top:50%;transform:translateY(-50%);
+  width:3px;height:14px;background:var(--accent);border-radius:2px;
+}
+.ch-dot{width:4px;height:4px;border-radius:50%;background:var(--text3);flex-shrink:0;}
+.ch-item.active .ch-dot{background:var(--accent);}
+.ch-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sidebar-footer{padding:10px 8px;border-top:1px solid var(--border);}
+.btn-new-nb{
+  width:100%;padding:8px;border-radius:9px;
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text2);font-size:13px;font-weight:500;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:all 0.15s;
+}
+.btn-new-nb:hover{background:var(--surface2);color:var(--text);}
+
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;overflow:hidden;}
+
+/* TOPBAR */
+#topbar{
+  display:flex;align-items:center;gap:6px;
+  padding:9px 12px;
+  background:rgba(22,22,28,0.82);
+  backdrop-filter:var(--blur-sm);-webkit-backdrop-filter:var(--blur-sm);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.topbar-title{
+  flex:1;font-size:13px;font-weight:500;color:var(--text2);
+  font-family:var(--font-body);font-style:italic;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.btn-icon{
+  width:30px;height:30px;border-radius:8px;
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text2);display:flex;align-items:center;justify-content:center;
+  font-size:14px;transition:all 0.15s;flex-shrink:0;
+}
+.btn-icon:hover{background:var(--surface2);color:var(--text);}
+.btn-execute{
+  padding:6px 14px;border-radius:8px;
+  background:linear-gradient(135deg,#4a9eff,#2d7fe0);
+  border:1px solid rgba(74,158,255,0.35);
+  color:#fff;font-size:12px;font-weight:600;letter-spacing:0.02em;
+  box-shadow:0 2px 10px var(--accent-glow);
+  transition:all 0.2s;display:flex;align-items:center;gap:5px;
+}
+.btn-execute:hover{box-shadow:0 4px 18px var(--accent-glow);transform:translateY(-1px);}
+
+/* TOOLBAR */
+#toolbar{
+  display:flex;align-items:center;gap:3px;flex-wrap:wrap;
+  padding:7px 12px;
+  background:rgba(22,22,28,0.75);
+  backdrop-filter:var(--blur-sm);-webkit-backdrop-filter:var(--blur-sm);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.tb-btn{
+  padding:4px 7px;border-radius:6px;background:transparent;
+  color:var(--text2);font-size:13px;font-weight:500;
+  transition:all 0.12s;min-width:26px;
+  display:flex;align-items:center;justify-content:center;
+}
+.tb-btn:hover{background:var(--surface2);color:var(--text);}
+.tb-div{width:1px;height:18px;background:var(--border);margin:0 3px;}
+.tb-sel{
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text2);border-radius:6px;padding:3px 7px;font-size:12px;cursor:pointer;
+}
+.tb-sel option{background:#2a2a32;}
+
+/* CHAPTER TITLE */
+#ch-title-bar{
+  padding:18px 36px 0;
+  max-width:calc(var(--editor-width) + 72px);
+  margin:0 auto;width:100%;flex-shrink:0;
+}
+#ch-title-input{
+  font-family:var(--font-body);font-size:26px;font-weight:600;
+  color:var(--text);width:100%;
+  border-bottom:1px solid transparent;padding-bottom:6px;
+  transition:border-color 0.2s;
+}
+#ch-title-input:focus{border-color:var(--border2);}
+#ch-title-input::placeholder{color:var(--text3);}
+
+/* EDITOR */
+#editor-wrap{flex:1;overflow-y:auto;padding:14px 36px 60px;}
+#editor{
+  max-width:var(--editor-width);margin:0 auto;
+  min-height:400px;
+  font-family:var(--editor-font);font-size:var(--editor-size);
+  line-height:1.85;color:var(--editor-color);
+  background:transparent;outline:none;caret-color:var(--accent);
+  word-break:break-word;
+}
+#editor p{margin-bottom:0.9em;}
+#editor h1{font-size:2em;font-weight:600;margin:1em 0 0.4em;}
+#editor h2{font-size:1.5em;font-weight:600;margin:0.9em 0 0.4em;}
+#editor h3{font-size:1.2em;font-weight:600;margin:0.8em 0 0.3em;}
+#editor blockquote{border-left:3px solid var(--accent);padding-left:1em;color:var(--text2);margin:1em 0;font-style:italic;}
+#editor ul,#editor ol{padding-left:1.5em;margin-bottom:0.9em;}
+#editor li{margin-bottom:0.25em;}
+#wc{font-size:11px;color:var(--text3);padding:0 36px 6px;max-width:calc(var(--editor-width) + 72px);margin:0 auto;flex-shrink:0;}
+
+/* MUSIC BAR */
+#music-bar{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;
+  background:rgba(22,22,28,0.82);
+  backdrop-filter:var(--blur-sm);-webkit-backdrop-filter:var(--blur-sm);
+  border-top:1px solid var(--border);flex-shrink:0;
+}
+.music-info{flex:1;min-width:0;}
+.music-nm{font-size:12px;font-weight:500;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.music-sub{font-size:10px;color:var(--text3);}
+.btn-add-music{
+  padding:5px 11px;border-radius:7px;
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text2);font-size:12px;font-weight:500;
+  display:flex;align-items:center;gap:4px;transition:all 0.15s;
+}
+.btn-add-music:hover{background:var(--surface2);color:var(--text);}
+#music-input{display:none;}
+
+/* EMPTY STATE */
+#empty{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;color:var(--text3);
+}
+#empty .e-icon{font-size:52px;opacity:0.25;}
+#empty p{font-size:15px;font-family:var(--font-body);font-style:italic;}
+.btn-start{
+  padding:9px 22px;border-radius:11px;
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text2);font-size:14px;font-weight:500;
+  margin-top:6px;transition:all 0.15s;
+}
+.btn-start:hover{background:var(--surface2);color:var(--text);}
+
+/* EXECUTION */
+#exec{
+  position:fixed;inset:0;z-index:100;
+  background:var(--editor-bg);
+  display:none;flex-direction:column;
+  cursor:pointer;user-select:none;
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+#exec.active{display:flex;}
+#exec-hud{
+  display:flex;align-items:center;gap:8px;
+  padding:14px 18px;
+  opacity:0;transition:opacity 0.35s;
+  flex-shrink:0;
+}
+#exec:hover #exec-hud,#exec-hud.visible{opacity:1;}
+.exec-title{flex:1;font-family:var(--font-body);font-style:italic;font-size:15px;color:var(--text2);}
+.btn-end{
+  padding:6px 14px;border-radius:8px;
+  background:rgba(255,95,95,0.12);border:1px solid rgba(255,95,95,0.22);
+  color:var(--red);font-size:13px;font-weight:500;transition:all 0.15s;
+}
+.btn-end:hover{background:rgba(255,95,95,0.22);}
+#exec-stage{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:40px 48px;position:relative;overflow:hidden;
+}
+#exec-chunk{
+  max-width:640px;width:100%;
+  font-family:var(--editor-font);
+  font-size:clamp(18px,2.2vw,22px);
+  line-height:1.9;color:var(--editor-color);
+  opacity:0;transform:translateY(14px);
+  transition:opacity 0.55s cubic-bezier(0.4,0,0.2,1),transform 0.55s cubic-bezier(0.4,0,0.2,1);
+}
+#exec-chunk.in{opacity:1;transform:translateY(0);}
+#exec-chunk.out{opacity:0;transform:translateY(-10px);}
+#exec-chunk.rise-enter{transform:translateY(22px);}
+#exec-bar{
+  position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:rgba(255,255,255,0.06);
+}
+#exec-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width 0.45s cubic-bezier(0.4,0,0.2,1);width:0%;}
+#exec-hint{
+  flex-shrink:0;padding-bottom:18px;
+  text-align:center;font-size:12px;color:var(--text3);
+  transition:opacity 0.4s;
+}
+#exec-hint.gone{opacity:0;}
+#exec-count{
+  position:absolute;bottom:16px;right:18px;
+  font-size:11px;color:var(--text3);letter-spacing:0.05em;
+}
+
+/* MODALS */
+.modal-bg{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,0.55);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  display:none;align-items:center;justify-content:center;
+  padding:20px;
+}
+.modal-bg.open{display:flex;}
+.modal{
+  background:rgba(36,36,46,0.97);
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--border2);border-radius:var(--r-xl);
+  padding:26px;width:min(420px,100%);
+  box-shadow:0 24px 64px rgba(0,0,0,0.55);
+  animation:mi 0.22s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes mi{from{opacity:0;transform:scale(0.93) translateY(8px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.modal h2{font-family:var(--font-body);font-size:20px;font-weight:600;margin-bottom:18px;}
+.mf{margin-bottom:14px;}
+.mf label{display:block;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;}
+.mi{
+  width:100%;padding:9px 13px;border-radius:9px;
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text);font-size:14px;transition:border-color 0.18s;
+}
+.mi:focus{border-color:var(--accent);}
+.mi option{background:#2a2a32;}
+.m-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
+.btn-cancel{
+  padding:8px 18px;border-radius:9px;
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text2);font-size:13px;font-weight:500;transition:all 0.12s;
+}
+.btn-cancel:hover{background:var(--surface2);}
+.btn-ok{
+  padding:8px 18px;border-radius:9px;
+  background:linear-gradient(135deg,#4a9eff,#2d7fe0);
+  border:1px solid rgba(74,158,255,0.35);
+  color:#fff;font-size:13px;font-weight:600;
+  box-shadow:0 2px 10px var(--accent-glow);transition:all 0.12s;
+}
+.btn-ok:hover{transform:translateY(-1px);box-shadow:0 4px 18px var(--accent-glow);}
+
+/* SETTINGS */
+#settings{
+  position:fixed;right:0;top:0;bottom:0;width:288px;z-index:50;
+  background:rgba(20,20,28,0.97);
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;
+  transform:translateX(288px);transition:transform 0.28s cubic-bezier(0.4,0,0.2,1);
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+#settings.open{transform:translateX(0);}
+.s-hdr{display:flex;align-items:center;justify-content:space-between;padding:18px 18px 14px;border-bottom:1px solid var(--border);}
+.s-hdr h3{font-family:var(--font-body);font-size:18px;font-weight:600;}
+.s-body{flex:1;overflow-y:auto;padding:14px 18px;}
+.s-sec{margin-bottom:22px;}
+.s-sec-lbl{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:9px;}
+.s-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.s-lbl{font-size:13px;color:var(--text2);}
+.s-sel{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:4px 9px;font-size:12px;}
+.s-sel option{background:#2a2a32;}
+.range{width:120px;accent-color:var(--accent);}
+.swatches{display:flex;gap:7px;flex-wrap:wrap;}
+.sw{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color 0.15s;}
+.sw:hover,.sw.on{border-color:var(--accent);}
+
+/* INSTALL BANNER */
+#install-banner{
+  position:fixed;bottom:calc(env(safe-area-inset-bottom) + 14px);
+  left:50%;transform:translateX(-50%);
+  background:rgba(36,36,46,0.95);
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--border2);border-radius:16px;
+  padding:12px 18px;
+  display:flex;align-items:center;gap:12px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+  z-index:300;
+  white-space:nowrap;
+  animation:slideup 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  max-width:calc(100vw - 28px);
+}
+@keyframes slideup{from{opacity:0;transform:translateX(-50%) translateY(20px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+#install-banner.gone{display:none;}
+.ib-icon{font-size:22px;flex-shrink:0;}
+.ib-text{flex:1;min-width:0;}
+.ib-title{font-size:13px;font-weight:600;color:var(--text);}
+.ib-sub{font-size:11px;color:var(--text2);}
+.btn-install{
+  padding:6px 13px;border-radius:8px;
+  background:linear-gradient(135deg,#4a9eff,#2d7fe0);
+  color:#fff;font-size:12px;font-weight:600;flex-shrink:0;
+}
+.btn-dismiss{
+  width:22px;height:22px;border-radius:50%;
+  background:var(--surface2);color:var(--text3);
+  font-size:13px;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="sidebar-header">
+      <div class="app-logo">Novelist</div>
+      <div class="sidebar-search">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12" height="12"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="search-input" placeholder="Search...">
+      </div>
+    </div>
+    <div class="sidebar-nav" id="nb-list">
+      <div class="nav-label">Notebooks</div>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn-new-nb" onclick="openNbModal()">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12" height="12"><path d="M12 5v14M5 12h14"/></svg>
+        New Notebook
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="topbar">
+      <button class="btn-icon" onclick="toggleSidebar()">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="15" height="15"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+      <div class="topbar-title" id="tb-title">Select a chapter</div>
+      <button class="btn-icon" onclick="openSettings()">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="3"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
+      </button>
+      <button class="btn-execute" id="btn-exec" style="display:none" onclick="startExec()">
+        <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="11" height="11"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Execute
+      </button>
+    </div>
+
+    <div id="toolbar" style="display:none">
+      <select class="tb-sel" id="sel-block" onchange="applyBlock(this.value)">
+        <option value="p">Paragraph</option>
+        <option value="h1">Heading 1</option>
+        <option value="h2">Heading 2</option>
+        <option value="h3">Heading 3</option>
+        <option value="blockquote">Quote</option>
+      </select>
+      <div class="tb-div"></div>
+      <button class="tb-btn" onclick="fmt('bold')"><b>B</b></button>
+      <button class="tb-btn" onclick="fmt('italic')"><i style="font-family:var(--font-body)">I</i></button>
+      <button class="tb-btn" onclick="fmt('underline')"><u>U</u></button>
+      <button class="tb-btn" onclick="fmt('strikeThrough')"><s>S</s></button>
+      <div class="tb-div"></div>
+      <button class="tb-btn" onclick="doc('justifyLeft')" title="Left">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+      </button>
+      <button class="tb-btn" onclick="doc('justifyCenter')" title="Center">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+      </button>
+      <button class="tb-btn" onclick="doc('justifyRight')" title="Right">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="tb-div"></div>
+      <button class="tb-btn" onclick="fmt('insertUnorderedList')">• List</button>
+      <button class="tb-btn" onclick="fmt('insertOrderedList')">1. List</button>
+      <div class="tb-div"></div>
+      <button class="tb-btn" onclick="fmt('undo')">↩</button>
+      <button class="tb-btn" onclick="fmt('redo')">↪</button>
+    </div>
+
+    <div id="ch-title-bar" style="display:none">
+      <input id="ch-title-input" type="text" placeholder="Chapter title..." oninput="saveTitle()">
+    </div>
+
+    <div id="wc" style="display:none">0 words</div>
+
+    <div id="editor-wrap" style="display:none">
+      <div id="editor" contenteditable="true" spellcheck="true"
+           oninput="onEdit()" onkeydown="onKey(event)"></div>
+    </div>
+
+    <div id="empty">
+      <div class="e-icon">📖</div>
+      <p>No chapter selected</p>
+      <button class="btn-start" onclick="openNbModal()">Create your first notebook</button>
+    </div>
+
+    <div id="music-bar" style="display:none">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="15" height="15" style="color:var(--text3);flex-shrink:0"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      <div class="music-info">
+        <div class="music-nm" id="music-nm">No music loaded</div>
+        <div class="music-sub">Plays in execution mode</div>
+      </div>
+      <button class="btn-add-music" onclick="document.getElementById('music-input').click()">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="11" height="11"><path d="M12 5v14M5 12h14"/></svg>
+        Add MP4
+      </button>
+      <input type="file" id="music-input" accept="video/mp4,audio/*" onchange="loadMusic(this)">
+    </div>
+  </div>
+</div>
+
+<!-- EXECUTION -->
+<div id="exec" onclick="tap(event)">
+  <div id="exec-hud">
+    <div class="exec-title" id="exec-title"></div>
+    <button class="btn-end" onclick="endExec(event)">End</button>
+  </div>
+  <div id="exec-stage">
+    <div id="exec-chunk"></div>
+    <div id="exec-bar"><div id="exec-fill"></div></div>
+    <div id="exec-count"></div>
+  </div>
+  <div id="exec-hint">Tap anywhere to begin</div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-bg" id="nb-modal">
+  <div class="modal">
+    <h2>New Notebook</h2>
+    <div class="mf"><label>Name</label><input type="text" class="mi" id="nb-name" placeholder="My Novel"></div>
+    <div class="mf">
+      <label>Icon</label>
+      <select class="mi" id="nb-icon">
+        <option>📖</option><option>📚</option><option>✍️</option>
+        <option>🌙</option><option>⚔️</option><option>🌊</option>
+        <option>🔮</option><option>🏙️</option><option>🌿</option>
+      </select>
+    </div>
+    <div class="m-actions">
+      <button class="btn-cancel" onclick="closeModal('nb-modal')">Cancel</button>
+      <button class="btn-ok" onclick="createNb()">Create</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="ch-modal">
+  <div class="modal">
+    <h2>New Chapter</h2>
+    <div class="mf"><label>Title</label><input type="text" class="mi" id="ch-name" placeholder="Chapter 1"></div>
+    <div class="mf">
+      <label>Chunk Mode</label>
+      <select class="mi" id="ch-chunk">
+        <option value="paragraph">Per Paragraph</option>
+        <option value="sentence">Per Sentence</option>
+        <option value="line">Per Line</option>
+      </select>
+    </div>
+    <div class="m-actions">
+      <button class="btn-cancel" onclick="closeModal('ch-modal')">Cancel</button>
+      <button class="btn-ok" onclick="createCh()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="settings">
+  <div class="s-hdr">
+    <h3>Appearance</h3>
+    <button class="btn-icon" onclick="closeSettings()">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="s-body">
+    <div class="s-sec">
+      <div class="s-sec-lbl">Editor Font</div>
+      <div class="s-row">
+        <span class="s-lbl">Typeface</span>
+        <select class="s-sel" onchange="set('editorFont',this.value)">
+          <option value="'Crimson Pro',Georgia,serif">Crimson Pro</option>
+          <option value="Georgia,serif">Georgia</option>
+          <option value="'Palatino Linotype',serif">Palatino</option>
+          <option value="'Courier New',monospace">Courier</option>
+          <option value="'Inter',sans-serif">Inter</option>
+        </select>
+      </div>
+      <div class="s-row">
+        <span class="s-lbl">Size</span>
+        <input type="range" class="range" min="15" max="26" value="19" oninput="set('editorSize',this.value+'px')">
+      </div>
+    </div>
+    <div class="s-sec">
+      <div class="s-sec-lbl">Background</div>
+      <div class="swatches">
+        <div class="sw on" style="background:#1a1a1f" onclick="setBg('#1a1a1f','#f0f0f5',this)"></div>
+        <div class="sw" style="background:#0d0d10" onclick="setBg('#0d0d10','#f0f0f5',this)"></div>
+        <div class="sw" style="background:#f5f0e8" onclick="setBg('#f5f0e8','#1a1a1f',this)"></div>
+        <div class="sw" style="background:#1a1f1a" onclick="setBg('#1a1f1a','#e8f0e8',this)"></div>
+        <div class="sw" style="background:#1a1a2e" onclick="setBg('#1a1a2e','#d0d8f0',this)"></div>
+        <div class="sw" style="background:#2d1b0e" onclick="setBg('#2d1b0e','#f0e8d8',this)"></div>
+      </div>
+    </div>
+    <div class="s-sec">
+      <div class="s-sec-lbl">Editor Width</div>
+      <input type="range" class="range" style="width:100%" min="400" max="900" value="680" oninput="set('editorWidth',this.value+'px')">
+    </div>
+    <div class="s-sec">
+      <div class="s-sec-lbl">Execution</div>
+      <div class="s-row">
+        <span class="s-lbl">Transition</span>
+        <select class="s-sel" id="exec-style" onchange="execStyle=this.value">
+          <option value="float">Float</option>
+          <option value="rise">Rise</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- INSTALL BANNER -->
+<div id="install-banner" class="gone">
+  <div class="ib-icon">📖</div>
+  <div class="ib-text">
+    <div class="ib-title">Add Novelist to Home Screen</div>
+    <div class="ib-sub">Install for the best experience</div>
+  </div>
+  <button class="btn-install" id="btn-install-app">Install</button>
+  <button class="btn-dismiss" onclick="dismissBanner()">✕</button>
+</div>
+
+<audio id="audio" loop></audio>
+
+<script>
+// ---- DATA ----
+let DBs = JSON.parse(localStorage.getItem('novelist2') || 'null');
+if(!DBs){
+  DBs = [{
+    id:uid(),name:'My Novel',icon:'📖',
+    chapters:[{
+      id:uid(),title:'Chapter 1: The Beginning',chunk:'paragraph',
+      content:'<p>-Your story begins here. Write freely, then tap Execute to bring it to life.-</p><p>Each paragraph becomes its own moment. Use a dash at the start and end of any paragraph to trigger a rise transition.</p><p>-Tap the screen to advance. Music fades in and out with the text.-</p>'
+    }]
+  }];
+  save();
+}
+
+let curNb=null, curCh=null, musicURL=null, execChunks=[], execIdx=-1, execOn=false, execStyle='float';
+let autoT=null, deferInstall=null;
+const audio=document.getElementById('audio');
+
+function uid(){return Math.random().toString(36).slice(2,10);}
+function save(){localStorage.setItem('novelist2',JSON.stringify(DBs));}
+function getNb(){return DBs.find(n=>n.id===curNb);}
+function getCh(){const n=getNb();return n?n.chapters.find(c=>c.id===curCh):null;}
+
+// ---- PWA / SERVICE WORKER ----
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+// Install prompt
+let installPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();installPrompt=e;
+  if(!localStorage.getItem('novelist_install_dismissed')){
+    document.getElementById('install-banner').classList.remove('gone');
+  }
+});
+window.addEventListener('appinstalled',()=>{
+  document.getElementById('install-banner').classList.add('gone');
+});
+
+document.getElementById('btn-install-app').onclick=async()=>{
+  if(installPrompt){
+    installPrompt.prompt();
+    const r=await installPrompt.userChoice;
+    if(r.outcome==='accepted')document.getElementById('install-banner').classList.add('gone');
+    installPrompt=null;
+  }
+};
+function dismissBanner(){
+  localStorage.setItem('novelist_install_dismissed','1');
+  document.getElementById('install-banner').classList.add('gone');
+}
+
+// iOS Safari "Add to Home Screen" hint
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
+if(isIOS&&!isStandalone&&!localStorage.getItem('novelist_install_dismissed')){
+  const b=document.getElementById('install-banner');
+  b.classList.remove('gone');
+  b.querySelector('.ib-sub').textContent='Tap Share then "Add to Home Screen"';
+  document.getElementById('btn-install-app').style.display='none';
+}
+
+// ---- SIDEBAR ----
+function render(){
+  const q=document.getElementById('search-input').value.toLowerCase();
+  let h='<div class="nav-label">Notebooks</div>';
+  DBs.forEach(nb=>{
+    const open=curNb===nb.id;
+    h+=`<div class="notebook">
+      <div class="nb-header${open?' open':''}" onclick="toggleNb('${nb.id}')">
+        <span class="nb-icon">${nb.icon}</span>
+        <span class="nb-name">${nb.name}</span>
+        <span class="nb-arrow${open?' open':''}">▶</span>
+      </div>`;
+    if(open){
+      h+=`<div class="chapter-list">`;
+      nb.chapters.filter(c=>!q||c.title.toLowerCase().includes(q)).forEach(c=>{
+        h+=`<div class="ch-item${curCh===c.id?' active':''}" onclick="selCh('${nb.id}','${c.id}')">
+          <div class="ch-dot"></div><span class="ch-name">${c.title}</span>
+        </div>`;
+      });
+      h+=`<div class="ch-item" onclick="openChModal('${nb.id}')" style="color:var(--text3)">
+        <span style="font-size:15px;line-height:1;margin-top:-1px">+</span>
+        <span>Add chapter</span>
+      </div></div>`;
+    }
+    h+=`</div>`;
+  });
+  document.getElementById('nb-list').innerHTML=h;
+}
+
+function toggleNb(id){curNb=curNb===id?null:id;render();}
+document.getElementById('search-input').addEventListener('input',render);
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('hidden');}
+
+function selCh(nbId,chId){
+  curNb=nbId;curCh=chId;
+  const nb=getNb(),ch=getCh();
+  document.getElementById('empty').style.display='none';
+  ['toolbar','ch-title-bar','wc','editor-wrap','music-bar'].forEach(id=>document.getElementById(id).style.display=id==='editor-wrap'?'block':id==='ch-title-bar'?'block':'flex');
+  document.getElementById('toolbar').style.display='flex';
+  document.getElementById('wc').style.display='block';
+  document.getElementById('ch-title-bar').style.display='block';
+  document.getElementById('editor-wrap').style.display='block';
+  document.getElementById('music-bar').style.display='flex';
+  document.getElementById('btn-exec').style.display='flex';
+  document.getElementById('ch-title-input').value=ch.title;
+  document.getElementById('editor').innerHTML=ch.content||'<p><br></p>';
+  document.getElementById('tb-title').textContent=`${nb.name}  /  ${ch.title}`;
+  updateWc();render();
+}
+
+// ---- EDITOR ----
+function fmt(cmd){document.execCommand(cmd,false,null);document.getElementById('editor').focus();}
+function doc(cmd){document.execCommand(cmd,false,null);}
+function applyBlock(v){
+  document.execCommand('formatBlock',false,v==='p'?'<p>':v==='blockquote'?'<blockquote>':'<'+v+'>');
+  document.getElementById('editor').focus();
+}
+function onEdit(){updateWc();clearTimeout(autoT);autoT=setTimeout(autosave,900);}
+function onKey(e){
+  if(e.key==='Enter'&&!e.shiftKey){
+    const sel=window.getSelection();
+    if(sel.rangeCount){
+      const n=sel.getRangeAt(0).startContainer;
+      const el=n.nodeType===3?n.parentElement:n;
+      if(el.tagName&&/^H[123]$/.test(el.tagName)){
+        e.preventDefault();
+        document.execCommand('insertParagraph');
+        document.execCommand('formatBlock',false,'<p>');
+      }
+    }
+  }
+}
+function updateWc(){
+  const t=document.getElementById('editor').innerText||'';
+  const w=t.trim().split(/\s+/).filter(Boolean).length;
+  document.getElementById('wc').textContent=w+' word'+(w!==1?'s':'');
+}
+function autosave(){const ch=getCh();if(ch){ch.content=document.getElementById('editor').innerHTML;save();}}
+function saveTitle(){
+  const ch=getCh();if(!ch)return;
+  ch.title=document.getElementById('ch-title-input').value;
+  const nb=getNb();
+  document.getElementById('tb-title').textContent=`${nb.name}  /  ${ch.title}`;
+  save();render();
+}
+
+// ---- SETTINGS ----
+function set(k,v){
+  const m={editorFont:'--editor-font',editorSize:'--editor-size',editorColor:'--editor-color',editorBg:'--editor-bg',editorWidth:'--editor-width'};
+  if(m[k])document.documentElement.style.setProperty(m[k],v);
+}
+function setBg(bg,fg,el){
+  set('editorBg',bg);set('editorColor',fg);
+  document.body.style.background=bg;
+  document.getElementById('exec').style.background=bg;
+  document.querySelectorAll('.sw').forEach(s=>s.classList.remove('on'));
+  el.classList.add('on');
+}
+function openSettings(){document.getElementById('settings').classList.add('open');}
+function closeSettings(){document.getElementById('settings').classList.remove('open');}
+
+// ---- MODALS ----
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function openNbModal(){document.getElementById('nb-name').value='';openModal('nb-modal');}
+function openChModal(nbId){
+  document.getElementById('ch-name').value='';
+  document.getElementById('ch-modal').dataset.nbId=nbId;
+  openModal('ch-modal');
+}
+function createNb(){
+  const name=document.getElementById('nb-name').value.trim()||'Untitled';
+  const icon=document.getElementById('nb-icon').value;
+  const nb={id:uid(),name,icon,chapters:[]};
+  DBs.push(nb);save();closeModal('nb-modal');
+  curNb=nb.id;render();
+}
+function createCh(){
+  const nbId=document.getElementById('ch-modal').dataset.nbId||curNb;
+  const nb=DBs.find(n=>n.id===nbId);if(!nb)return;
+  const title=document.getElementById('ch-name').value.trim()||`Chapter ${nb.chapters.length+1}`;
+  const chunk=document.getElementById('ch-chunk').value;
+  const ch={id:uid(),title,chunk,content:'<p><br></p>'};
+  nb.chapters.push(ch);save();closeModal('ch-modal');
+  selCh(nbId,ch.id);
+}
+
+// ---- MUSIC ----
+function loadMusic(inp){
+  const f=inp.files[0];if(!f)return;
+  if(musicURL)URL.revokeObjectURL(musicURL);
+  musicURL=URL.createObjectURL(f);
+  document.getElementById('music-nm').textContent=f.name.replace(/\.[^.]+$/,'');
+  audio.src=musicURL;audio.load();
+  inp.value='';
+}
+function fadeAudio(to,ms){
+  const from=audio.volume,diff=to-from,steps=30,iv=ms/steps;
+  let s=0;
+  const t=setInterval(()=>{
+    s++;audio.volume=Math.max(0,Math.min(1,from+diff*(s/steps)));
+    if(s>=steps){clearInterval(t);if(to===0)audio.pause();}
+  },iv);
+}
+
+// ---- EXECUTION ----
+function buildChunks(html,mode){
+  const div=document.createElement('div');div.innerHTML=html;
+  const raw=[];
+  div.querySelectorAll('p,h1,h2,h3,h4,blockquote,li').forEach(el=>{
+    const txt=el.textContent.trim();
+    if(!txt)return;
+    const marked=txt.startsWith('-')&&txt.endsWith('-')&&txt.length>2;
+    let inner=el.innerHTML;
+    if(marked){inner=inner.replace(/^-\s*/,'').replace(/\s*-$/,'');}
+    raw.push({html:inner,tag:el.tagName.toLowerCase(),style:marked?'rise':'float'});
+  });
+  if(mode==='sentence'){
+    const out=[];
+    raw.forEach(c=>{
+      const t=document.createElement('div');t.innerHTML=c.html;
+      const sents=t.textContent.match(/[^.!?]+[.!?]+/g)||[t.textContent];
+      sents.forEach(s=>out.push({html:s.trim(),tag:c.tag,style:c.style}));
+    });
+    return out;
+  }
+  return raw;
+}
+
+function startExec(){
+  autosave();
+  const ch=getCh();if(!ch)return;
+  execChunks=buildChunks(ch.content,ch.chunk||'paragraph');
+  if(!execChunks.length)return;
+  execIdx=-1;execOn=true;
+  document.getElementById('exec-title').textContent=ch.title;
+  document.getElementById('exec-chunk').className='';
+  document.getElementById('exec-chunk').innerHTML='';
+  document.getElementById('exec-fill').style.width='0%';
+  document.getElementById('exec-count').textContent='';
+  document.getElementById('exec-hint').classList.remove('gone');
+  document.getElementById('exec').classList.add('active');
+  if(musicURL){
+    audio.volume=0;audio.play().catch(()=>{});
+    fadeAudio(0.88,1400);
+  }
+}
+
+function showChunk(idx){
+  const el=document.getElementById('exec-chunk');
+  const hint=document.getElementById('exec-hint');
+  if(idx<0||idx>=execChunks.length)return;
+  const c=execChunks[idx];
+  hint.classList.add('gone');
+  // fade out
+  el.classList.remove('in');el.classList.add('out');
+  setTimeout(()=>{
+    el.classList.remove('out');
+    // set content
+    if(c.tag.match(/^h[123]$/)){
+      const h=document.createElement(c.tag);h.innerHTML=c.html;
+      el.innerHTML='';el.appendChild(h);
+    } else if(c.tag==='blockquote'){
+      const bq=document.createElement('blockquote');bq.innerHTML=c.html;
+      el.innerHTML='';el.appendChild(bq);
+    } else {
+      el.innerHTML=c.html;
+    }
+    const s=c.style||execStyle;
+    if(s==='rise'){el.style.transform='translateY(22px)';}
+    else{el.style.transform='translateY(14px)';}
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      el.style.transform='';el.classList.add('in');
+    }));
+    const pct=((idx+1)/execChunks.length)*100;
+    document.getElementById('exec-fill').style.width=pct+'%';
+    document.getElementById('exec-count').textContent=`${idx+1} / ${execChunks.length}`;
+    // show HUD briefly then hide
+    const hud=document.getElementById('exec-hud');
+    hud.classList.add('visible');
+    clearTimeout(hud._t);
+    hud._t=setTimeout(()=>hud.classList.remove('visible'),2200);
+  },260);
+}
+
+function tap(e){
+  if(e.target.closest('.btn-end')||e.target.closest('#exec-hud'))return;
+  if(!execOn)return;
+  execIdx++;
+  if(execIdx>=execChunks.length){
+    const el=document.getElementById('exec-chunk');
+    el.classList.remove('in');el.classList.add('out');
+    setTimeout(()=>{
+      el.innerHTML='<span style="opacity:0.35;font-style:italic;font-size:0.85em">End of chapter.</span>';
+      el.classList.remove('out');el.classList.add('in');
+    },260);
+    if(musicURL)fadeAudio(0,2200);
+    execOn=false;return;
+  }
+  showChunk(execIdx);
+}
+
+function endExec(e){
+  e.stopPropagation();execOn=false;
+  document.getElementById('exec').classList.remove('active');
+  if(musicURL)fadeAudio(0,1200);
+}
+
+// ---- KEYBOARD ----
+document.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();autosave();}
+  if((e.metaKey||e.ctrlKey)&&e.key==='\\'){e.preventDefault();toggleSidebar();}
+  if(e.key==='Escape'){
+    if(document.getElementById('exec').classList.contains('active'))endExec({stopPropagation:()=>{}});
+    closeSettings();
+  }
+  if(e.key===' '&&document.getElementById('exec').classList.contains('active')){
+    e.preventDefault();
+    tap({target:document.getElementById('exec-stage'),closest:()=>null,stopPropagation:()=>{}});
+  }
+});
+
+// ---- START ----
+render();
+selCh(DBs[0].id,DBs[0].chapters[0].id);
+</script>
+</body>
+</html>
